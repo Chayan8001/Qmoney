@@ -81,17 +81,17 @@ public class PortfolioManagerApplication
         
         TotalReturnsDto TotalReturnsDtoObject = new TotalReturnsDto(trades.getSymbol(), stocks.get(stocks.size()-1).getClose());
         SortedClosingPrice.add(TotalReturnsDtoObject);
-        
-        Collections.sort(SortedClosingPrice , (o1,o2) -> o1.getClosingPrice().compareTo(o2.getClosingPrice()));
-        for(TotalReturnsDto symbols  : SortedClosingPrice)
-              result.add(symbols.getSymbol());
+
       }
     }
     catch(Exception e)
     {
-      e.printStackTrace();
+      //e.printStackTrace();
       throw new RuntimeException();
     }
+    Collections.sort(SortedClosingPrice , (o1,o2) -> o1.getClosingPrice().compareTo(o2.getClosingPrice()));
+    for(TotalReturnsDto symbols  : SortedClosingPrice)
+          result.add(symbols.getSymbol());
     return result;
   }
 
