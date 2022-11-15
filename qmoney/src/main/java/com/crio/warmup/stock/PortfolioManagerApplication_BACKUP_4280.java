@@ -12,9 +12,7 @@ import java.net.URISyntaxException;
 //import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 //import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,18 +25,34 @@ import java.util.UUID;
 import java.util.logging.Logger;
 // import java.util.stream.Collectors;
 // import java.util.stream.Stream;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
 import org.springframework.web.client.RestTemplate;
 
 
-public class PortfolioManagerApplication
+public class PortfolioManagerApplication_BACKUP_4280
 {
    public static List<String> mainReadFile(String[] args) throws IOException, URISyntaxException 
    {
-      List<String> symboList = new ArrayList<>();
-      try
-      {
-        List<PortfolioTrade> trades = readTradesFromJson(args[0]);
+    ObjectMapper objectMapper = new ObjectMapper();
+     objectMapper.registerModule(new JavaTimeModule());
+     List<String> symboList = new ArrayList<>();
+     try
+     {
+       PortfolioTrade[] trades = objectMapper.readValue(Paths.get(getPath(args[0])+""+args[0]).toFile(), PortfolioTrade[].class);
        for(PortfolioTrade trade : trades)
        {
          symboList.add(trade.getSymbol());
@@ -62,40 +76,33 @@ public class PortfolioManagerApplication
   // 2. You can copy relevant code from #mainReadFile to parse the Json.
   // 3. Use RestTemplate#getForObject in order to call the API,
   //    and deserialize the results in List<Candle>
-  public static List<Candle> readTiingoApi(PortfolioTrade trades,String date)
+
+  public static List<String> mainReadQuotes(String[] args) throws IOException, URISyntaxException 
   {
     RestTemplate rest =new RestTemplate();
-    List<Candle> data = new ArrayList<>();
+    List<String> result = new ArrayList<>();
+    List<PortfolioTrade> trade = readTradesFromJson(args[0]);
+    List<TiingoCandle> stocks = new ArrayList<>();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    List<TotalReturnsDto> SortedClosingPrice = new ArrayList<>();
     try
     {
-      String url = prepareUrl(trades ,getDate(date),getToken());
-        Candle [] responseList = rest.getForObject(url, TiingoCandle[].class);
-        data = Arrays.asList(responseList);
+      for(PortfolioTrade trades : trade)
+      {
+        String url = prepareUrl(trades ,LocalDate.parse(args[1], formatter),"65be3207288ba2235033ef65b8e7b8311b07033d");
+        TiingoCandle [] responseList = rest.getForObject(url, TiingoCandle[].class);
+        stocks = Arrays.asList(responseList);
+        
+        TotalReturnsDto TotalReturnsDtoObject = new TotalReturnsDto(trades.getSymbol(), stocks.get(stocks.size()-1).getClose());
+        SortedClosingPrice.add(TotalReturnsDtoObject);
 
+      }
     }
     catch(Exception e)
     {
       //e.printStackTrace();
       throw new RuntimeException();
     }
-    return data;
-  }
-
-  public static List<String> mainReadQuotes(String[] args) throws IOException, URISyntaxException 
-  {
-    List<String> result = new ArrayList<>();
-    List<PortfolioTrade> trade = readTradesFromJson(args[0]);
-    List<Candle> stocks = new ArrayList<>();
-    List<TotalReturnsDto> SortedClosingPrice = new ArrayList<>();
-
-    for(PortfolioTrade trades : trade)
-    {
-      stocks = readTiingoApi(trades , args[1]);
-      TotalReturnsDto TotalReturnsDtoObject = new TotalReturnsDto(trades.getSymbol(), stocks.get(stocks.size()-1).getClose());
-      SortedClosingPrice.add(TotalReturnsDtoObject);
-
-    }
-    
     Collections.sort(SortedClosingPrice , (o1,o2) -> o1.getClosingPrice().compareTo(o2.getClosingPrice()));
     for(TotalReturnsDto symbols  : SortedClosingPrice)
           result.add(symbols.getSymbol());
@@ -157,7 +164,8 @@ public class PortfolioManagerApplication
        toStringOfObjectMapper, functionNameFromTestFileInStackTrace,
        lineNumberFromTestFileInStackTrace});
  }
- // TODO: CRIO_TASK_MODULE_CALCULATIONS
+
+  // TODO: CRIO_TASK_MODULE_CALCULATIONS
   //  Now that you have the list of PortfolioTrade and their data, calculate annualized returns
   //  for the stocks provided in the Json.
   //  Use the function you just wrote #calculateAnnualizedReturns.
@@ -167,79 +175,57 @@ public class PortfolioManagerApplication
   // 1. You may need to copy relevant code from #mainReadQuotes to parse the Json.
   // 2. Remember to get the latest quotes from Tiingo API.
 
- public static LocalDate getDate(String date)
- {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    return LocalDate.parse(date , formatter);
- }
 
-  public static String getToken()
-  {
-      String token = "65be3207288ba2235033ef65b8e7b8311b07033d";
-      return token;
-  }
+
+
   // TODO:
   //  Ensure all tests are passing using below command
   //  ./gradlew test --tests ModuleThreeRefactorTest
-  static Double getOpeningPriceOnStartDate(List<Candle> candles) 
-  {
-    return candles.get(0).getOpen();
+  static Double getOpeningPriceOnStartDate(List<Candle> candles) {
+     return 0.0;
   }
 
 
- public static Double getClosingPriceOnEndDate(List<Candle> candles) {
-    return candles.get(candles.size()-1).getClose();
- }
+  public static Double getClosingPriceOnEndDate(List<Candle> candles) {
+     return 0.0;
+  }
 
 
- public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate, String token) 
- {
-   return readTiingoApi(trade, endDate.toString());
- }
+  public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate, String token) {
+     return Collections.emptyList();
+  }
 
- public static List<AnnualizedReturn> mainCalculateSingleReturn(String[] args)
-    throws IOException, URISyntaxException {
-    List<PortfolioTrade> trade = readTradesFromJson(args[0]);
-    double purchasePrice = 0.0;
-    double sellingPrice = 0.0;
-    List<AnnualizedReturn> annualizedReturn = new ArrayList<>();
-    List<Candle> candles = new ArrayList<>();
-    for(PortfolioTrade trades : trade)
-    {
-      candles = readTiingoApi(trades , args[1]);
-      purchasePrice = getOpeningPriceOnStartDate(candles);
-      sellingPrice = getClosingPriceOnEndDate(candles);
-      annualizedReturn.add(calculateAnnualizedReturns(getDate(args[1]),trades , purchasePrice , sellingPrice));
-    }
-    Collections.sort(annualizedReturn , (o1,o2) -> o2.getAnnualizedReturn().compareTo(o1.getAnnualizedReturn()));
-    return annualizedReturn;
- }
+  public static List<AnnualizedReturn> mainCalculateSingleReturn(String[] args)
+      throws IOException, URISyntaxException {
+     return Collections.emptyList();
+  }
 
- // TODO: CRIO_TASK_MODULE_CALCULATIONS
- //  Return the populated list of AnnualizedReturn for all stocks.
- //  Annualized returns should be calculated in two steps:
- //   1. Calculate totalReturn = (sell_value - buy_value) / buy_value.
- //      1.1 Store the same as totalReturns
- //   2. Calculate extrapolated annualized returns by scaling the same in years span.
- //      The formula is:
- //      annualized_returns = (1 + total_returns) ^ (1 / total_num_years) - 1
- //      2.1 Store the same as annualized_returns
- //  Test the same using below specified command. The build should be successful.
- //     ./gradlew test --tests PortfolioManagerApplicationTest.testCalculateAnnualizedReturn
+  // TODO: CRIO_TASK_MODULE_CALCULATIONS
+  //  Return the populated list of AnnualizedReturn for all stocks.
+  //  Annualized returns should be calculated in two steps:
+  //   1. Calculate totalReturn = (sell_value - buy_value) / buy_value.
+  //      1.1 Store the same as totalReturns
+  //   2. Calculate extrapolated annualized returns by scaling the same in years span.
+  //      The formula is:
+  //      annualized_returns = (1 + total_returns) ^ (1 / total_num_years) - 1
+  //      2.1 Store the same as annualized_returns
+  //  Test the same using below specified command. The build should be successful.
+  //     ./gradlew test --tests PortfolioManagerApplicationTest.testCalculateAnnualizedReturn
 
- public static double getYear(LocalDate startDate , LocalDate endDate)
- {
-    double year = startDate.until(endDate, ChronoUnit.DAYS)/365.24;
-    return year;
- }
+  public static AnnualizedReturn calculateAnnualizedReturns(LocalDate endDate,
+      PortfolioTrade trade, Double buyPrice, Double sellPrice) {
+      return new AnnualizedReturn("", 0.0, 0.0);
+  }
 
- public static AnnualizedReturn calculateAnnualizedReturns(LocalDate endDate,
-     PortfolioTrade trade, Double buyPrice, Double sellPrice) {
-      double total_returns = (sellPrice - buyPrice)/buyPrice;
-      double total_num_years = getYear(trade.getPurchaseDate() , endDate);
-      double annualized_returns = Math.pow((1 + total_returns),(1 /(double)total_num_years))-1;
-     return new AnnualizedReturn(trade.getSymbol(),annualized_returns,total_returns);
- }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -250,7 +236,6 @@ public class PortfolioManagerApplication
     printJsonObject(mainReadFile(args));
     printJsonObject(mainReadQuotes(args));
     printJsonObject(mainCalculateSingleReturn(args));
-
 
   }
 }
