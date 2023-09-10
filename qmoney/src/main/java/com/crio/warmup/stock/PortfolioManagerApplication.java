@@ -35,7 +35,6 @@ public class PortfolioManagerApplication
 {
    public static List<String> mainReadFile(String[] args) throws IOException, URISyntaxException 
    {
-
       List<String> symboList = new ArrayList<>();
       try
       {
